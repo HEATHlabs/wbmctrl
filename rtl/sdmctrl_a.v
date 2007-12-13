@@ -181,6 +181,7 @@ module sdmctrl (
    reg r_casn; 
    reg[7:0] r_dqm; 
    reg r_bsel; 
+   reg[31:10] r_haddr;
    reg[16:2] r_address; 
    reg ri_hready; 
    reg ri_hsel; 
@@ -213,6 +214,7 @@ module sdmctrl (
    reg ri_casn; 
    reg[7:0] ri_dqm; 
    reg ri_bsel; 
+   reg[31:10] ri_haddr;
    reg[16:2] ri_address; 
 
    always @(*)
@@ -263,7 +265,8 @@ module sdmctrl (
       ri_rasn=r_rasn; 
       ri_casn=r_casn; 
       ri_dqm=r_dqm; 
-      ri_bsel=r_bsel; 
+      ri_bsel=r_bsel;
+      ri_haddr=r_haddr;
       ri_address=r_address;
      
       startsd = 1'b0; 
@@ -436,6 +439,7 @@ module sdmctrl (
                   begin
                      ri_rasn = 1'b1; 
                      ri_trfc = r_cfg_trfc; 
+                     ri_haddr = sdi_rhaddr[31:10];
                      if (r_cfg_casdel == 1'b1)
                      begin
                         ri_sdstate = act2; 
@@ -517,19 +521,31 @@ module sdmctrl (
                   end
          wr2 :
                   begin
-                     if (r_trfc[2:1] == 2'b00)
-                     begin
-                        if (r_cfg_trp == 1'b0)
-                        begin
-                           ri_rasn = 1'b0; 
-                           ri_sdwen = 1'b0; 
-                        end 
-                        ri_sdstate = wr3; 
-                     end 
+                  	 if (sdi_rhtrans == 2'b10 & sdi_rhaddr[31:10] == r_haddr & r_hsel == 1'b1)
+                  	 begin
+                  	 	 if(sdi_hwrite == 1'b1)
+                  	 	   ri_hready = 1'b1;
+                  	 	 ri_sdstate = act3;
+                  	 end
+	                   else if (r_trfc[2:1] == 2'b00)
+	                   begin
+	                      if (r_cfg_trp == 1'b0)
+	                      begin
+	                         ri_rasn = 1'b0; 
+	                         ri_sdwen = 1'b0; 
+	                      end 
+	                      ri_sdstate = wr3; 
+	                   end 
                   end
          wr3 :
                   begin
-                     if (r_cfg_trp == 1'b1)
+                  	 if (sdi_rhtrans == 2'b10 & sdi_rhaddr[31:10] == r_haddr & r_sdwen == 1'b1 & r_hsel == 1'b1)
+                  	 begin
+                  	 	  if(sdi_hwrite == 1'b1)
+                  	 	     ri_hready = 1'b1;
+                  	 	  ri_sdstate = act3;
+                  	 end
+                     else if (r_cfg_trp == 1'b1)
                      begin
                         ri_rasn = 1'b0; 
                         ri_sdwen = 1'b0; 
@@ -626,7 +642,7 @@ module sdmctrl (
                   begin
                      ri_casn = 1'b1; 
                      ri_sdstate = rd3; 
-                     if (sdi_htrans != 2'b11)
+                     if (sdi_htrans != 2'b11 & r_trfc[2:1] == 2'b00)
                      begin
                         ri_rasn = 1'b0; 
                         ri_sdwen = 1'b0; 
@@ -1000,11 +1016,11 @@ module sdmctrl (
       {r_hready, r_hsel, r_bdrive, r_burst, r_busy, r_bdelay, r_wprothit, r_startsd,
       r_aload, r_mstate, r_sdstate, r_cmstate, r_istate, r_icnt, r_cfg_command, r_cfg_csize,
       r_cfg_bsize, r_cfg_casdel, r_cfg_trfc, r_cfg_trp, r_cfg_refresh, r_cfg_renable, r_cfg_pageburst,
-      r_trfc, r_refresh, r_sdcsn, r_sdwen, r_rasn, r_casn, r_dqm, r_bsel, r_address}<=
+      r_trfc, r_refresh, r_sdcsn, r_sdwen, r_rasn, r_casn, r_dqm, r_bsel, r_haddr, r_address}<=
       {ri_hready, ri_hsel, ri_bdrive, ri_burst, ri_busy, ri_bdelay, ri_wprothit, ri_startsd,
       ri_aload, ri_mstate, ri_sdstate, ri_cmstate, ri_istate, ri_icnt, ri_cfg_command, ri_cfg_csize,
       ri_cfg_bsize, ri_cfg_casdel, ri_cfg_trfc, ri_cfg_trp, ri_cfg_refresh, ri_cfg_renable, ri_cfg_pageburst,
-      ri_trfc, ri_refresh, ri_sdcsn, ri_sdwen, ri_rasn, ri_casn, ri_dqm, ri_bsel, ri_address} ; 
+      ri_trfc, ri_refresh, ri_sdcsn, ri_sdwen, ri_rasn, ri_casn, ri_dqm, ri_bsel, ri_haddr, ri_address} ; 
       if (rst == 1'b0)
       begin
          r_icnt <= {3{1'b0}} ; 

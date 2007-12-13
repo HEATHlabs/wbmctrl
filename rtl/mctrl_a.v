@@ -751,6 +751,9 @@ module mctrl (
       end 
       if ((r_brmw == 1'b1) & (r_busw == 2'b01) & BUS16EN)
       begin
+      	 if (r_address[1] ==1'b1)
+      	 		writedata[31:16] = writedata[15:0];
+      	 		
          if ((r_address[0]) == 1'b0)
          begin
             writedata[23:16] = r_data[23:16]; 
@@ -790,7 +793,7 @@ module mctrl (
                         end
                         else if (r_busw == 2'b01)
                         begin
-                           if ((r_address[1]) == 1'b0)
+                           if ((r_address[1]) == 1'b0 | r_brmw == 1'b1 )
                            begin
                               ri_writedata[31:16] = writedata[31:16]; 
                            end
@@ -1027,10 +1030,14 @@ module mctrl (
                            ri_writedata8[15:8] = r_writedata8[7:0]; 
                            ri_bstate = idle; 
                         end 
-                        if (r_ws != 4'b0000)
+                        if (r_ready8 == 1'b1)
                         begin
-                           ri_ws = r_ws - 1; 
+                           ri_ws = rws; 
                         end 
+                        else if ( r_ws != 4'b0000)
+                        begin
+                        	 ri_ws = r_ws - 1;
+                        end
                      end
                      else
                      begin
@@ -1628,6 +1635,11 @@ module mctrl (
 	      memo_svbdrive <= rsbdrive;
 	    	memo_sddata[31 : 0]  <= r_sdwritedata[31 : 0];
 	    	memo_sddata[63 : 32] <= r_sdwritedata[63 : 32];
+        if ((syncrst == 0) & (rst == 1'b0))
+        begin
+            if (oepol == 0) memo_svbdrive <= {64{1'b1}};
+            else memo_svbdrive <=  {64{1'b0}};
+        end
 	    end
 	  end
   end
