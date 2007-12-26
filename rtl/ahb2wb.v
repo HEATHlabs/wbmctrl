@@ -187,15 +187,36 @@ module ahb2wb(
 					default:				ahbsi_haddr=adr_u;
 				endcase
 		end
-				
+	
+		ahbsi_hwdata=wb_dat_i;
+		wb_dat_o=ahbso_hrdata;
+		
+		case(wb_sel_i)
+			4'b0001:		ahbsi_hwdata[31:24]	=wb_dat_i[7:0];
+			4'b0010:		ahbsi_hwdata[23:16]	=wb_dat_i[15:8];
+			4'b0100:		ahbsi_hwdata[15:8]	=wb_dat_i[23:16];
+			4'b1000:		ahbsi_hwdata[7:0]		=wb_dat_i[31:24];
+			4'b1100:		ahbsi_hwdata[15:0]	={wb_dat_i[23:16],wb_dat_i[31:24]};
+			4'b0011:		ahbsi_hwdata[31:16]	={wb_dat_i[7:0],wb_dat_i[15:8]};
+			4'b1111:		ahbsi_hwdata				={wb_dat_i[7:0],wb_dat_i[15:8],wb_dat_i[23:16],wb_dat_i[31:24]};
+		endcase
+		
+		case(wb_sel_i)
+			4'b0001:		wb_dat_o[7:0]		=ahbso_hrdata[31:24];
+			4'b0010:		wb_dat_o[15:8]	=ahbso_hrdata[23:16];
+			4'b0100:		wb_dat_o[23:16]	=ahbso_hrdata[15:8];
+			4'b1000:		wb_dat_o[31:24]	=ahbso_hrdata[7:0];
+			4'b1100:		wb_dat_o[31:16]	={ahbso_hrdata[7:0],ahbso_hrdata[15:8]};
+			4'b0011:		wb_dat_o[15:0]	={ahbso_hrdata[23:16],ahbso_hrdata[31:24]};
+			4'b1111:		wb_dat_o				={ahbso_hrdata[7:0],ahbso_hrdata[15:8],ahbso_hrdata[23:16],ahbso_hrdata[31:24]};
+		endcase
+		
 		ahbsi_hsel=1'b1;//wb_cyc_i;
 		ahbsi_hwrite=wb_we_i;
-		ahbsi_hwdata=wb_dat_i;
 		
 		wb_ack_o=(sm!=idle) && ahbso_hready && (ahbso_hresp==HRESP_OKAY);
 		wb_err_o=((sm!=idle) && ahbso_hready && (ahbso_hresp==HRESP_ERROR)) || decode_err;
 		wb_rty_o=(sm!=idle) && ahbso_hready && (ahbso_hresp==HRESP_RETRY || ahbso_hresp==HRESP_SPLIT);
-		wb_dat_o=ahbso_hrdata;
 		
 		if(wb_cti_i==WBCTI_CLASSIC)
 			ahbsi_hburst=HBURST_SINGLE;
