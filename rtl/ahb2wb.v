@@ -19,6 +19,7 @@
 //synopsys translate_off
 `timescale 1ns / 1ps
 //synopsys translate_on
+`include "../include/rst_cfg.v"
 
 module ahb2wb(
 	clk,rst_n,
@@ -38,7 +39,10 @@ module ahb2wb(
 /////////////////////////////////////////////////////
 	`include "../include/amba.v"
 	`include "../include/wishbone.v"
+	
+	//synopsys translate_off
 	`include "../include/fun.v"
+	//synopsys translate_on
 	
 	parameter idle=0;
 	parameter busy=1;
@@ -91,7 +95,7 @@ module ahb2wb(
 /////////////////////////////////////////////////////
 // Sequential logic
 /////////////////////////////////////////////////////
-	always@(posedge clk)
+	always@(posedge clk `RESTN_CFG(rst_n))
 		if(!rst_n)
 		begin
 			sm<=idle;
