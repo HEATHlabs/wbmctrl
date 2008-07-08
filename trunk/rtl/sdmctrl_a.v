@@ -40,9 +40,10 @@
 //synopsys translate_off
 `timescale 1ns / 1ps
 //synopsys translate_on
+`include "../include/rst_cfg.v"
 
 module sdmctrl (
-	rst, clk,
+	rst, clk, ri_mben, other_sn,
 	sdi_haddr, sdi_rhaddr, sdi_hready, sdi_hsize, sdi_hsel, sdi_hwrite, sdi_htrans,
 	sdi_rhtrans, sdi_nhtrans, sdi_idle, sdi_enable, sdi_srdis,
 	
@@ -70,6 +71,8 @@ module sdmctrl (
 
    input rst; 
    input clk; 
+   input [3:0] ri_mben;
+   input [6:0] other_sn;
    input[31:0] sdi_haddr; 
    input[31:0] sdi_rhaddr; 
    input sdi_hready; 
@@ -93,7 +96,7 @@ module sdmctrl (
    output sdo_casn; 
    reg sdo_casn;
    output[7:0] sdo_dqm; 
-   reg[7:0] sdo_dqm;
+   reg[7:0] sdo_dqm, sdo_dqm_a;
    input[0:NAPBSLV - 1] apbi_psel; 
    input apbi_penable; 
    input[31:0] apbi_paddr; 
@@ -967,40 +970,22 @@ module sdmctrl (
       aload = ri_aload; 
       // generate memory address
       //sdmo_address <= ri_address ; 
-      sdmo_address = ri_address ; 
-      if (rst == 1'b0)
-      begin
-         ri_sdstate = sidle; 
-         ri_mstate = midle; 
-         ri_istate = iidle; 
-         ri_cmstate = midle; 
-         ri_hsel = 1'b0; 
-         ri_cfg_command = 2'b00; 
-         ri_cfg_csize = 2'b10; 
-         ri_cfg_bsize = 3'b000; 
-         ri_cfg_casdel = 1'b1; 
-         ri_cfg_trfc = 3'b111; 
-         ri_cfg_renable = 1'b0; 
-         ri_cfg_trp = 1'b1; 
-         ri_dqm = {8{1'b1}}; 
-         ri_sdwen = 1'b1; 
-         ri_rasn = 1'b1; 
-         ri_casn = 1'b1; 
-         ri_hready = 1'b1; 
-         ri_startsd = 1'b0; 
-         // reset
-         if (pageburst == 2)
-         begin
-            ri_cfg_pageburst = 1'b0; 
-         end 
-      end 
+      sdmo_address = ri_address ;
+      
+      //----to save 4 output pins------ 
+      sdo_dqm_a = ri_dqm;
+      if(!(&other_sn))
+      	sdo_dqm_a[3:0] = ri_mben;
+      else
+      	sdo_dqm_a[3:0] = {ri_dqm[0],ri_dqm[1],ri_dqm[2],ri_dqm[3]};
+      	
       //ri <= v ; 
        
       sdmo_bdrive = ri_bdrive ; 
       sdo_sdcke = {2{1'b1}} ; 
       sdo_sdcsn = r_sdcsn ; 
       sdo_sdwen = r_sdwen ; 
-      sdo_dqm = r_dqm ; 
+//      sdo_dqm = r_dqm ; 
       sdo_rasn = r_rasn ; 
       sdo_casn = r_casn ; 
       sdmo_busy = busy ; 
@@ -1011,24 +996,45 @@ module sdmctrl (
       sdmo_bsel = r_bsel ; 
    end 
 
-   always @(posedge clk)
-   begin : regs
+   always @(posedge clk `RESTN_CFG(rst))
+   if(!rst)
+   begin
+         r_icnt <= {3{1'b0}} ;   	
+         r_bdrive <= 1'b0 ; 
+         r_sdcsn <= {2{1'b1}} ; 
+
+         r_sdstate <= sidle; 
+         r_mstate <= midle; 
+         r_istate <= iidle; 
+         r_cmstate <= midle; 
+         r_hsel <= 1'b0; 
+         r_cfg_command <= 2'b00; 
+         r_cfg_csize <= 2'b10; 
+         r_cfg_bsize <= 3'b000; 
+         r_cfg_casdel <= 1'b1; 
+         r_cfg_trfc <= 3'b111; 
+         r_cfg_renable <= 1'b0; 
+         r_cfg_trp <= 1'b1; 
+         r_dqm <= {8{1'b1}}; 
+         r_sdwen <= 1'b1; 
+         r_rasn <= 1'b1; 
+         r_casn <= 1'b1; 
+         r_hready <= 1'b1; 
+         r_startsd <= 1'b0; 
+         // reset
+         if (pageburst == 2)
+         begin
+            r_cfg_pageburst <= 1'b0; 
+         end 
+	 end
+   else begin : regs
       {r_hready, r_hsel, r_bdrive, r_burst, r_busy, r_bdelay, r_wprothit, r_startsd,
       r_aload, r_mstate, r_sdstate, r_cmstate, r_istate, r_icnt, r_cfg_command, r_cfg_csize,
       r_cfg_bsize, r_cfg_casdel, r_cfg_trfc, r_cfg_trp, r_cfg_refresh, r_cfg_renable, r_cfg_pageburst,
-      r_trfc, r_refresh, r_sdcsn, r_sdwen, r_rasn, r_casn, r_dqm, r_bsel, r_haddr, r_address}<=
+      r_trfc, r_refresh, r_sdcsn, r_sdwen, r_rasn, r_casn, r_dqm, r_bsel, r_haddr, r_address, sdo_dqm}<=
       {ri_hready, ri_hsel, ri_bdrive, ri_burst, ri_busy, ri_bdelay, ri_wprothit, ri_startsd,
       ri_aload, ri_mstate, ri_sdstate, ri_cmstate, ri_istate, ri_icnt, ri_cfg_command, ri_cfg_csize,
       ri_cfg_bsize, ri_cfg_casdel, ri_cfg_trfc, ri_cfg_trp, ri_cfg_refresh, ri_cfg_renable, ri_cfg_pageburst,
-      ri_trfc, ri_refresh, ri_sdcsn, ri_sdwen, ri_rasn, ri_casn, ri_dqm, ri_bsel, ri_haddr, ri_address} ; 
-      if (rst == 1'b0)
-      begin
-         r_icnt <= {3{1'b0}} ; 
-      end  
-      if (rst == 1'b0)
-      begin
-         r_bdrive <= 1'b0 ; 
-         r_sdcsn <= {2{1'b1}} ; 
-      end 
+      ri_trfc, ri_refresh, ri_sdcsn, ri_sdwen, ri_rasn, ri_casn, ri_dqm, ri_bsel, ri_haddr, ri_address, sdo_dqm_a} ; 
    end 
 endmodule

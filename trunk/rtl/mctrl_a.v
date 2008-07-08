@@ -33,6 +33,7 @@
 //synopsys translate_off
 `timescale 1ns / 1ps
 //synopsys translate_on
+`include "../include/rst_cfg.v"
 
 module mctrl (
 	rst, clk, 
@@ -1402,49 +1403,6 @@ module mctrl (
          vsbdrive[47:40] = {8{ri_nbdrive[2]}}; 
          vsbdrive[39:32] = {8{ri_nbdrive[3]}}; 
       end 
-      if (rst == 1'b0)
-      begin
-         ri_bstate = idle; 
-         ri_read = 1'b1; 
-         ri_wrn = 4'b1111; 
-         ri_writen = 1'b1; 
-         ri_mcfg1_romwrite = 1'b0; 
-         ri_mcfg1_ioen = 1'b0; 
-         ri_mcfg1_brdyen = 1'b0; 
-         ri_mcfg1_bexcen = 1'b0; 
-         ri_hsel = 1'b0; 
-         ri_srhsel = 1'b0; 
-         ri_ready = 1'b1; 
-         ri_mcfg1_iows = 4'b0000; 
-         ri_mcfg2_ramrws = 2'b00; 
-         ri_mcfg2_ramwws = 2'b00; 
-         ri_mcfg1_romrws = 4'b1111; 
-         ri_mcfg1_romwws = 4'b1111; 
-         ri_mcfg1_romwidth = memi_bwidth; 
-         ri_mcfg2_srdis = 1'b0; 
-         ri_mcfg2_sdren = 1'b0; 
-         if (syncrst == 1)
-         begin
-            ri_ramsn = {5{1'b1}}; 
-            ri_romsn = {2{1'b1}}; 
-            ri_oen = 1'b1; 
-            ri_iosn = 2'b11; 
-            ri_ramoen = {5{1'b1}}; 
-            ri_bdrive = {4{1'b1}}; 
-            ri_nbdrive = {4{1'b0}}; 
-            // reset
-            if (oepol == 0)
-            begin
-               vbdrive = {32{1'b1}}; 
-               vsbdrive = {64{1'b1}}; 
-            end
-            else
-            begin
-               vbdrive = {32{1'b0}}; 
-               vsbdrive = {64{1'b0}}; 
-            end 
-         end 
-      end 
       if (oepol == 0)
       begin
          // optional feeb-back from write stobe to data bus drivers
@@ -1516,31 +1474,52 @@ module mctrl (
       ahbso_hresp = r_hresp ; 
    end 
 
-   always @(posedge clk)
-   begin : stdregs
-      {r_address, r_data, r_writedata, r_writedata8, r_sdwritedata, r_readdata, r_brdyn,
-       r_ready, r_ready8, r_bdrive, r_nbdrive, r_ws, r_romsn, r_ramsn, r_ramoen, r_size, 
-       r_busw, r_oen, r_iosn, r_read, r_wrn, r_writen, r_bstate, r_area, r_mcfg1_romrws,
-       r_mcfg1_romwws, r_mcfg1_romwidth, r_mcfg1_romwrite, r_mcfg1_ioen, r_mcfg1_iows, 
-       r_mcfg1_bexcen, r_mcfg1_brdyen, r_mcfg1_iowidth, r_mcfg2_ramrws, r_mcfg2_ramwws,
-       r_mcfg2_ramwidth, r_mcfg2_rambanksz, r_mcfg2_rmw, r_mcfg2_brdyen, r_mcfg2_srdis,
-       r_mcfg2_sdren, r_bexcn, r_echeck, r_brmw, r_haddr, r_hsel, r_srhsel, r_sdhsel,
-       r_hwrite, r_hburst, r_htrans, r_hresp, r_sa, r_sd, r_mben}
-       <= {ri_address, ri_data, ri_writedata, ri_writedata8, ri_sdwritedata, ri_readdata, ri_brdyn,
-       ri_ready, ri_ready8, ri_bdrive, ri_nbdrive, ri_ws, ri_romsn, ri_ramsn, ri_ramoen, ri_size,
-       ri_busw, ri_oen, ri_iosn, ri_read, ri_wrn, ri_writen, ri_bstate, ri_area, ri_mcfg1_romrws,
-       ri_mcfg1_romwws, ri_mcfg1_romwidth, ri_mcfg1_romwrite, ri_mcfg1_ioen, ri_mcfg1_iows,
-       ri_mcfg1_bexcen, ri_mcfg1_brdyen, ri_mcfg1_iowidth, ri_mcfg2_ramrws, ri_mcfg2_ramwws,
-       ri_mcfg2_ramwidth, ri_mcfg2_rambanksz, ri_mcfg2_rmw, ri_mcfg2_brdyen, ri_mcfg2_srdis,
-       ri_mcfg2_sdren, ri_bexcn, ri_echeck, ri_brmw, ri_haddr, ri_hsel, ri_srhsel, ri_sdhsel,
-       ri_hwrite, ri_hburst, ri_htrans, ri_hresp, ri_sa, ri_sd, ri_mben} ; 
-      rbdrive <= ribdrive ; 
-      rsbdrive <= risbdrive ; 
-      if (rst == 1'b0)
-      begin
-         r_ws <= {4{1'b0}} ; 
-      end  
-      if ((syncrst == 0) & (rst == 1'b0))
+   always @(posedge clk `RESTN_CFG(rst))
+   if(!rst)
+   begin
+			r_readdata <= 32'b0;
+			r_bstate <= idle; 
+			r_read <= 1'b1; 
+			r_wrn <= 4'b1111; 
+			r_writen <= 1'b1; 
+			r_mcfg1_romwrite <= 1'b0; 
+			r_mcfg1_ioen <= 1'b0; 
+			r_mcfg1_brdyen <= 1'b0; 
+			r_mcfg1_bexcen <= 1'b0; 
+			r_hsel <= 1'b0; 
+			r_srhsel <= 1'b0; 
+			r_ready <= 1'b1; 
+			r_mcfg1_iows <= 4'b0000; 
+			r_mcfg2_ramrws <= 2'b00; 
+			r_mcfg2_ramwws <= 2'b00; 
+			r_mcfg1_romrws <= 4'b1111; 
+			r_mcfg1_romwws <= 4'b1111; 
+			r_mcfg1_romwidth <= memi_bwidth; 
+			r_mcfg2_srdis <= 1'b0; 
+			r_mcfg2_sdren <= 1'b0; 
+			if (syncrst == 1)
+			begin
+				r_ramsn <= {5{1'b1}}; 
+				r_romsn <= {2{1'b1}}; 
+				r_oen <= 1'b1; 
+				r_iosn <= 2'b11; 
+				r_ramoen <= {5{1'b1}}; 
+				r_bdrive <= {4{1'b1}}; 
+				r_nbdrive <= {4{1'b0}}; 
+				// reset
+				if (oepol == 0)
+				begin
+            rbdrive <= {32{1'b1}} ; 
+            rsbdrive <= {64{1'b1}} ; 
+				end
+				else
+				begin
+            rbdrive <= {32{1'b0}} ; 
+            rsbdrive <= {64{1'b0}} ; 
+				end 
+			end 
+         r_ws <= {4{1'b0}} ;   	
+      if ((syncrst == 0))
       begin
          r_ramsn <= {5{1'b1}} ; 
          r_romsn <= {2{1'b1}} ; 
@@ -1560,6 +1539,26 @@ module mctrl (
             rsbdrive <= {64{1'b0}} ; 
          end 
       end 
+  end
+  else begin : stdregs
+      {r_address, r_data, r_writedata, r_writedata8, r_sdwritedata, r_readdata, r_brdyn,
+       r_ready, r_ready8, r_bdrive, r_nbdrive, r_ws, r_romsn, r_ramsn, r_ramoen, r_size, 
+       r_busw, r_oen, r_iosn, r_read, r_wrn, r_writen, r_bstate, r_area, r_mcfg1_romrws,
+       r_mcfg1_romwws, r_mcfg1_romwidth, r_mcfg1_romwrite, r_mcfg1_ioen, r_mcfg1_iows, 
+       r_mcfg1_bexcen, r_mcfg1_brdyen, r_mcfg1_iowidth, r_mcfg2_ramrws, r_mcfg2_ramwws,
+       r_mcfg2_ramwidth, r_mcfg2_rambanksz, r_mcfg2_rmw, r_mcfg2_brdyen, r_mcfg2_srdis,
+       r_mcfg2_sdren, r_bexcn, r_echeck, r_brmw, r_haddr, r_hsel, r_srhsel, r_sdhsel,
+       r_hwrite, r_hburst, r_htrans, r_hresp, r_sa, r_sd, r_mben}
+       <= {ri_address, ri_data, ri_writedata, ri_writedata8, ri_sdwritedata, ri_readdata, ri_brdyn,
+       ri_ready, ri_ready8, ri_bdrive, ri_nbdrive, ri_ws, ri_romsn, ri_ramsn, ri_ramoen, ri_size,
+       ri_busw, ri_oen, ri_iosn, ri_read, ri_wrn, ri_writen, ri_bstate, ri_area, ri_mcfg1_romrws,
+       ri_mcfg1_romwws, ri_mcfg1_romwidth, ri_mcfg1_romwrite, ri_mcfg1_ioen, ri_mcfg1_iows,
+       ri_mcfg1_bexcen, ri_mcfg1_brdyen, ri_mcfg1_iowidth, ri_mcfg2_ramrws, ri_mcfg2_ramwws,
+       ri_mcfg2_ramwidth, ri_mcfg2_rambanksz, ri_mcfg2_rmw, ri_mcfg2_brdyen, ri_mcfg2_srdis,
+       ri_mcfg2_sdren, ri_bexcn, ri_echeck, ri_brmw, ri_haddr, ri_hsel, ri_srhsel, ri_sdhsel,
+       ri_hwrite, ri_hburst, ri_htrans, ri_hresp, ri_sa, ri_sd, ri_mben} ; 
+      rbdrive <= ribdrive ; 
+      rsbdrive <= risbdrive ; 
    end 
 
 // optional sdram controller
@@ -1570,6 +1569,8 @@ module mctrl (
 	    	sdctrl(
 	    		.rst	(rst),
 	    		.clk	(clk),
+	    		.ri_mben			(ri_mben),
+	    		.other_sn			({ri_ramsn,ri_romsn}),
 		      .sdi_idle			(sdi_idle), 
 		      .sdi_haddr		(sdi_haddr), 
 		      .sdi_rhaddr		(sdi_rhaddr), 
