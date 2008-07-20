@@ -163,7 +163,8 @@ module wb_mctrl(
    wire[2:0] ahbsi_hsize; 
    wire[2:0] ahbsi_hburst; 
    wire[31:0] ahbsi_hwdata; 
-
+	 wire[31:0] memi_data_ok, memo_data_ok;
+	 
 /////////////////////////////////////////////////////
 // Instances
 /////////////////////////////////////////////////////
@@ -218,7 +219,7 @@ module wb_mctrl(
    .ahbsi_hwdata(ahbsi_hwdata), 
    .ahbsi_hready(ahbso_hready), 
    .ahbsi_hmbsel(ahbsi_hmbsel), 
-   .memi_data(memi_data), 
+   .memi_data(memi_data_ok), 
    .memi_brdyn(memi_brdyn), 
    .memi_bexcn(memi_bexcn), 
    .memi_wrn(memi_wrn), 
@@ -227,7 +228,7 @@ module wb_mctrl(
    .wpo_wprothit(wprot),    
    //outputs
    .memo_address(memo_address),
-   .memo_data(memo_data),
+   .memo_data(memo_data_ok),
    .memo_sddata(memo_sddata),
    .memo_ramsn(memo_ramsn),
    .memo_ramoen(memo_ramoen),
@@ -271,6 +272,9 @@ module wb_mctrl(
 /////////////////////////////////////////////////////
 // Combinational logic
 /////////////////////////////////////////////////////
+	assign memi_data_ok = {memi_data[7:0],memi_data[15:8],memi_data[23:16],memi_data[31:24]};
+	assign memo_data 		= {memo_data_ok[7:0],memo_data_ok[15:8],memo_data_ok[23:16],memo_data_ok[31:24]};
+	
 	always@(*)
 	begin
 		apbi_psel=cfg_cyc_i;
